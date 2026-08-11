@@ -1,0 +1,44 @@
+version: "3.9"
+
+services:
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    env_file: ./server/.env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+    ports:
+      - "3306:3306"
+    volumes:
+      - devpulse_mysql_data:/var/lib/mysql
+      - ./server/database/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  server:
+    build: ./server
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    env_file: ./server/.env
+    environment:
+      NODE_ENV: development
+      DB_HOST: mysql
+    ports:
+      - "4000:4000"
+
+  client:
+    build: ./client
+    restart: unless-stopped
+    depends_on:
+      - server
+    ports:
+      - "8080:80"
+
+volumes:
+  devpulse_mysql_data:

@@ -1,0 +1,38 @@
+.history-card {
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  background: var(--color-panel);
+  padding: var(--space-lg);
+}
+
+.history-card-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-muted);
+  margin-bottom: var(--space-md);
+}
+
+.history-chart-svg {
+  width: 100%;
+  height: 140px;
+  display: block;
+}
+
+.history-trend {
+  font-size: 13px;
+  margin-top: var(--space-sm);
+  font-family: var(--font-mono);
+}
+
+.history-trend--up { color: var(--color-signal); }
+.history-trend--down { color: var(--color-danger); }
+.history-trend--flat { color: var(--color-muted); }
+
+.history-empty {
+  color: var(--color-muted);
+  font-size: 13px;
+  text-align: center;
+  padding: var(--space-xl) 0;
+}

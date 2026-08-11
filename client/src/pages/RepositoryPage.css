@@ -1,0 +1,75 @@
+.repo-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--space-xl) var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.repo-page-back {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-muted);
+  background: none;
+  border: none;
+  align-self: flex-start;
+  margin-bottom: var(--space-sm);
+}
+
+.repo-page-back:hover {
+  color: var(--color-signal);
+}
+
+.repo-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.repo-page-title {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.repo-page-desc {
+  color: var(--color-muted);
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.repo-page-sync-btn {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-signal);
+  background: var(--color-signal-10);
+  border: 1px solid var(--color-signal);
+  border-radius: var(--radius-sm);
+  padding: 8px 14px;
+  flex-shrink: 0;
+}
+
+.repo-page-sync-btn:disabled {
+  opacity: 0.5;
+}
+
+.repo-page-top-grid {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: var(--space-lg);
+}
+
+.repo-page-boards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-lg);
+}
+
+@media (max-width: 800px) {
+  .repo-page-top-grid,
+  .repo-page-boards {
+    grid-template-columns: 1fr;
+  }
+}

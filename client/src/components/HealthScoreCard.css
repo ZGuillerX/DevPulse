@@ -1,0 +1,89 @@
+.health-card {
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  background: var(--color-panel);
+  padding: var(--space-lg);
+}
+
+.health-card-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
+}
+
+.health-card-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-muted);
+}
+
+.health-card-badge {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-weight: 500;
+}
+
+.health-card-badge--healthy { background: var(--color-signal-10); color: var(--color-signal); }
+.health-card-badge--warning { background: var(--color-warn-10); color: var(--color-warn); }
+.health-card-badge--critical { background: var(--color-danger-10); color: var(--color-danger); }
+.health-card-badge--unknown { background: rgba(136,145,165,0.1); color: var(--color-muted); }
+
+.health-card-score {
+  font-family: var(--font-display);
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: var(--space-sm);
+}
+
+.health-card-bar-track {
+  height: 6px;
+  background: var(--color-panel-2);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: var(--space-lg);
+}
+
+.health-card-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.health-card-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.health-factor {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  font-size: 13px;
+}
+
+.health-factor-points {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  flex-shrink: 0;
+  width: 40px;
+  text-align: right;
+}
+
+.health-factor-points--positive { color: var(--color-signal); }
+.health-factor-points--negative { color: var(--color-danger); }
+
+.health-factor-text {
+  color: var(--color-muted);
+}
+
+.health-factor-name {
+  color: var(--color-text);
+  font-weight: 500;
+}

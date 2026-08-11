@@ -1,0 +1,85 @@
+.topbar {
+  border-bottom: 1px solid var(--color-line);
+}
+
+.topbar-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--space-md) var(--space-lg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.topbar-dot {
+  height: 24px;
+  width: 24px;
+  border-radius: 6px;
+  background: var(--color-signal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.topbar-dot-inner {
+  height: 6px;
+  width: 6px;
+  border-radius: 50%;
+  background: var(--color-ink);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+.topbar-name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+}
+
+.topbar-workspace-select {
+  background: var(--color-panel);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: 13px;
+  padding: 6px 10px;
+  font-family: var(--font-mono);
+}
+
+.topbar-link {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-muted);
+  background: none;
+  border: none;
+  transition: color 0.15s;
+  position: relative;
+}
+
+.topbar-link:hover {
+  color: var(--color-signal);
+}
+
+.topbar-badge {
+  position: absolute;
+  top: -6px;
+  right: -10px;
+  background: var(--color-danger);
+  color: white;
+  font-size: 10px;
+  border-radius: 999px;
+  padding: 1px 5px;
+  font-family: var(--font-body);
+}
