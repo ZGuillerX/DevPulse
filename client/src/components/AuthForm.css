@@ -86,11 +86,82 @@
   padding: 10px 14px;
   font-size: 14px;
   color: var(--color-text);
+  width: 100%;
 }
 
 .auth-input:focus {
   border-color: var(--color-signal);
   outline: none;
+}
+
+.auth-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.auth-input-wrapper .auth-input {
+  padding-right: 60px;
+}
+
+.auth-input-toggle {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-muted);
+  padding: 4px 6px;
+  transition: color 0.15s;
+}
+
+.auth-input-toggle:hover {
+  color: var(--color-signal);
+}
+
+.auth-requirements {
+  background: var(--color-panel);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.auth-requirements-title {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-muted);
+  margin-bottom: 2px;
+}
+
+.auth-requirement {
+  font-size: 12.5px;
+  transition: color 0.15s;
+}
+
+.auth-requirement--met {
+  color: var(--color-signal);
+}
+
+.auth-requirement--unmet {
+  color: var(--color-danger);
+}
+
+.auth-mismatch {
+  color: var(--color-danger);
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.auth-match {
+  color: var(--color-signal);
+  font-size: 12px;
+  margin-top: 2px;
 }
 
 .auth-submit {
