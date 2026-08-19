@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import { query } from "../config/db.js";
 import { sendAlertEmail } from "./email.service.js";
+import { pushToUser } from "./realtime.service.js";
 import { logger } from "../utils/logger.js";
 
 export async function getAlertSettings(userId, workspaceId) {
@@ -39,11 +40,20 @@ export async function upsertAlertSettings(userId, workspaceId, settings) {
 }
 
 async function createNotification({ userId, workspaceId, type, title, body, url, email, emailEnabled }) {
+  const id = randomUUID();
+  const createdAt = new Date();
   await query(
-    "INSERT INTO notifications (id, user_id, workspace_id, type, title, body, url) VALUES (?, ?, ?, ?, ?, ?, ?)",
-    [randomUUID(), userId, workspaceId, type, title, body, url]
+    "INSERT INTO notifications (id, user_id, workspace_id, type, title, body, url, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+    [id, userId, workspaceId, type, title, body, url, createdAt]
   );
   logger.info("Notificación creada", { userId, type, title });
+
+  // Push inmediato por WebSocket si el usuario tiene una pestaña abierta —
+  // si no, no pasa nada, el polling de 60s en el frontend la recoge igual.
+  pushToUser(userId, {
+    type: "notification",
+    notification: { id, type, title, body, url, read_at: null, created_at: createdAt.toISOString() },
+  });
 
   if (emailEnabled && email) {
     await sendAlertEmail({
