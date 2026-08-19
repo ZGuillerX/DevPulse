@@ -60,7 +60,7 @@ export async function generateDailyBrief({ userName, priorityItems, healthScores
       provider === "openai"
         ? "https://api.openai.com/v1/chat/completions"
         : "https://api.groq.com/openai/v1/chat/completions";
-    const model = provider === "openai" ? "gpt-4o-mini" : "llama-3.3-70b-versatile";
+    const model = provider === "openai" ? "gpt-4o-mini" : "openai/gpt-oss-120b";
 
     const res = await fetch(url, {
       method: "POST",
