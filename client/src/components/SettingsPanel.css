@@ -125,6 +125,92 @@
   font-family: var(--font-mono);
 }
 
+.settings-members-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.settings-member-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  background: var(--color-panel-2);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+}
+
+.settings-member-info {
+  min-width: 0;
+}
+
+.settings-member-name {
+  font-size: 13px;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-member-email {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--color-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-member-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.settings-member-role-select {
+  background: var(--color-panel);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--color-text);
+}
+
+.settings-member-remove {
+  background: none;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  color: var(--color-muted);
+  font-size: 12px;
+  padding: 4px 8px;
+}
+
+.settings-member-remove:hover {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+.settings-member-role-badge {
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--color-muted);
+  flex-shrink: 0;
+}
+
+.settings-invite-row {
+  display: flex;
+  gap: 8px;
+}
+
+.settings-invite-row .settings-input {
+  flex: 1;
+}
+
 .settings-save {
   width: 100%;
   background: var(--color-signal);

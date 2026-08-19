@@ -1,14 +1,65 @@
 import { useState } from "react";
+import type { Role, Workspace } from "@/types";
 import { setAiKey, getStoredAiKey } from "@/lib/api";
 import { useGithubConnection } from "@/hooks/useGithubConnection";
+import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
 import "./SettingsPanel.css";
 
+const ROLE_LABELS: Record<Role, string> = {
+  owner: "Owner",
+  admin: "Admin",
+  member: "Miembro",
+  viewer: "Viewer",
+};
+
 interface Props {
+  workspace: Workspace | null;
+  currentUserId: string | null;
   onClose: () => void;
 }
 
-export default function SettingsPanel({ onClose }: Props) {
+export default function SettingsPanel({ workspace, currentUserId, onClose }: Props) {
   const github = useGithubConnection(true);
+  const members = useWorkspaceMembers(workspace?.id ?? null);
+  const canManageMembers = workspace?.role === "owner" || workspace?.role === "admin";
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState<Role>("member");
+  const [inviting, setInviting] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [memberActionError, setMemberActionError] = useState<string | null>(null);
+  const ownerCount = members.members.filter((m) => m.role === "owner").length;
+
+  async function handleInvite() {
+    if (!inviteEmail.trim()) return;
+    setInviting(true);
+    setInviteError(null);
+    try {
+      await members.inviteMember(inviteEmail.trim(), inviteRole);
+      setInviteEmail("");
+    } catch (e: any) {
+      setInviteError(e?.message || "No se pudo invitar a ese correo.");
+    } finally {
+      setInviting(false);
+    }
+  }
+
+  async function handleRoleChange(userId: string, role: Role) {
+    setMemberActionError(null);
+    try {
+      await members.updateRole(userId, role);
+    } catch (e: any) {
+      setMemberActionError(e?.message || "No se pudo cambiar el rol.");
+    }
+  }
+
+  async function handleRemove(userId: string) {
+    setMemberActionError(null);
+    try {
+      await members.removeMember(userId);
+    } catch (e: any) {
+      setMemberActionError(e?.message || "No se pudo quitar al miembro.");
+    }
+  }
   const [patInput, setPatInput] = useState("");
   const [connecting, setConnecting] = useState(false);
   const [provider, setProvider] = useState<"groq" | "openai">(
@@ -91,6 +142,97 @@ export default function SettingsPanel({ onClose }: Props) {
               </p>
             </>
           )}
+        </div>
+
+        <div className="settings-section">
+          <label className="settings-label">Miembros del workspace</label>
+
+          {members.loading && members.members.length === 0 && (
+            <p className="settings-hint">Cargando miembros...</p>
+          )}
+
+          {members.members.length > 0 && (
+            <div className="settings-members-list">
+              {members.members.map((m) => {
+                const isSelf = m.id === currentUserId;
+                const isLastOwner = m.role === "owner" && ownerCount <= 1;
+                const locked = isSelf || isLastOwner;
+                return (
+                  <div key={m.id} className="settings-member-row">
+                    <div className="settings-member-info">
+                      <p className="settings-member-name">{m.name || m.email}</p>
+                      <p className="settings-member-email">{m.email}</p>
+                    </div>
+                    {canManageMembers && !locked ? (
+                      <div className="settings-member-actions">
+                        <select
+                          className="settings-member-role-select"
+                          value={m.role}
+                          onChange={(e) => handleRoleChange(m.id, e.target.value as Role)}
+                        >
+                          {(Object.keys(ROLE_LABELS) as Role[]).map((r) => (
+                            <option key={r} value={r}>
+                              {ROLE_LABELS[r]}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          className="settings-member-remove"
+                          onClick={() => handleRemove(m.id)}
+                          title="Quitar del workspace"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="settings-member-role-badge">
+                        {ROLE_LABELS[m.role]}
+                        {isSelf ? " (tú)" : ""}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {members.error && <p style={{ color: "var(--color-danger)", fontSize: 12 }}>{members.error}</p>}
+          {memberActionError && (
+            <p style={{ color: "var(--color-danger)", fontSize: 12 }}>{memberActionError}</p>
+          )}
+
+          {canManageMembers && (
+            <div className="settings-invite-row">
+              <input
+                className="settings-input"
+                type="email"
+                placeholder="correo@ejemplo.com"
+                value={inviteEmail}
+                onChange={(e) => {
+                  setInviteEmail(e.target.value);
+                  if (inviteError) setInviteError(null);
+                }}
+              />
+              <select
+                className="settings-member-role-select"
+                value={inviteRole}
+                onChange={(e) => setInviteRole(e.target.value as Role)}
+              >
+                <option value="viewer">Viewer</option>
+                <option value="member">Miembro</option>
+                <option value="admin">Admin</option>
+              </select>
+              <button className="settings-provider-btn" onClick={handleInvite} disabled={inviting}>
+                {inviting ? "Invitando..." : "Invitar"}
+              </button>
+            </div>
+          )}
+          {inviteError && (
+            <p style={{ color: "var(--color-danger)", fontSize: 12, marginTop: 6 }}>{inviteError}</p>
+          )}
+          <p className="settings-hint">
+            La persona invitada ya debe tener una cuenta en DevPulse con ese correo.
+          </p>
         </div>
 
         <div className="settings-section">
