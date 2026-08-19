@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import type { Role, Workspace } from "@/types";
-import { setAiKey, getStoredAiKey } from "@/lib/api";
+import {
+  type AiProvider,
+  getStoredAiKeys,
+  setStoredAiKeys,
+  getPreferredAiProvider,
+  setPreferredAiProvider,
+} from "@/lib/api";
 import { useGithubConnection } from "@/hooks/useGithubConnection";
 import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
 import { useAlertSettings } from "@/hooks/useAlertSettings";
@@ -12,6 +18,12 @@ const ROLE_LABELS: Record<Role, string> = {
   member: "Miembro",
   viewer: "Viewer",
 };
+
+const AI_PROVIDERS: { id: AiProvider; label: string; placeholder: string }[] = [
+  { id: "groq", label: "Groq", placeholder: "gsk_..." },
+  { id: "openai", label: "OpenAI", placeholder: "sk-..." },
+  { id: "anthropic", label: "Anthropic (Claude)", placeholder: "sk-ant-..." },
+];
 
 interface Props {
   workspace: Workspace | null;
@@ -63,10 +75,8 @@ export default function SettingsPanel({ workspace, currentUserId, onClose }: Pro
   }
   const [patInput, setPatInput] = useState("");
   const [connecting, setConnecting] = useState(false);
-  const [provider, setProvider] = useState<"groq" | "openai">(
-    (localStorage.getItem("devpulse:aiProvider") as "groq" | "openai") || "groq"
-  );
-  const [aiKey, setAiKeyLocal] = useState(getStoredAiKey());
+  const [preferredProvider, setPreferredProviderLocal] = useState<AiProvider>(getPreferredAiProvider());
+  const [aiKeys, setAiKeysLocal] = useState<Partial<Record<AiProvider, string>>>(getStoredAiKeys());
 
   const alertSettings = useAlertSettings(workspace?.id ?? null);
   const [ciFailure, setCiFailure] = useState(true);
@@ -99,8 +109,8 @@ export default function SettingsPanel({ workspace, currentUserId, onClose }: Pro
   }
 
   async function handleSave() {
-    localStorage.setItem("devpulse:aiProvider", provider);
-    setAiKey(aiKey);
+    setPreferredAiProvider(preferredProvider);
+    setStoredAiKeys(aiKeys);
 
     setSavingAlerts(true);
     setAlertSaveError(null);
@@ -266,27 +276,31 @@ export default function SettingsPanel({ workspace, currentUserId, onClose }: Pro
 
         <div className="settings-section">
           <label className="settings-label">Resumen con IA (Daily Brief)</label>
-          <div className="settings-provider-row">
-            {(["groq", "openai"] as const).map((p) => (
-              <button
-                key={p}
-                className={`settings-provider-btn ${provider === p ? "settings-provider-btn--active" : ""}`}
-                onClick={() => setProvider(p)}
-              >
-                {p === "groq" ? "Groq" : "OpenAI"}
-              </button>
-            ))}
-          </div>
-          <input
-            className="settings-input"
-            type="password"
-            placeholder={provider === "groq" ? "gsk_..." : "sk-..."}
-            value={aiKey}
-            onChange={(e) => setAiKeyLocal(e.target.value)}
-          />
-          <p className="settings-hint">
-            Sin esta clave, el Daily Brief se genera con reglas automáticas — sigue funcionando, solo sin lenguaje natural.
+          <p className="settings-hint" style={{ marginTop: 0, marginBottom: 10 }}>
+            Puedes configurar varias a la vez. Se usa primero la marcada como
+            preferida; si falla, se prueba con la siguiente que tenga clave.
+            Sin ninguna, el Daily Brief se genera con reglas automáticas.
           </p>
+          {AI_PROVIDERS.map((p) => (
+            <div key={p.id} className="settings-ai-provider-row">
+              <label className="settings-ai-provider-radio" title="Usar como proveedor preferido">
+                <input
+                  type="radio"
+                  name="preferredAiProvider"
+                  checked={preferredProvider === p.id}
+                  onChange={() => setPreferredProviderLocal(p.id)}
+                />
+                {p.label}
+              </label>
+              <input
+                className="settings-input"
+                type="password"
+                placeholder={p.placeholder}
+                value={aiKeys[p.id] || ""}
+                onChange={(e) => setAiKeysLocal((prev) => ({ ...prev, [p.id]: e.target.value }))}
+              />
+            </div>
+          ))}
         </div>
 
         <div className="settings-section">

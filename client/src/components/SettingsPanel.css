@@ -202,6 +202,27 @@
   flex-shrink: 0;
 }
 
+.settings-ai-provider-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.settings-ai-provider-radio {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 150px;
+  flex-shrink: 0;
+  font-size: 13px;
+  color: var(--color-text);
+}
+
+.settings-ai-provider-row .settings-input {
+  flex: 1;
+}
+
 .settings-invite-row {
   display: flex;
   gap: 8px;
