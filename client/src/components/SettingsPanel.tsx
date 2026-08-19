@@ -73,6 +73,7 @@ export default function SettingsPanel({ workspace, currentUserId, onClose }: Pro
   const [prWaitingDays, setPrWaitingDays] = useState(3);
   const [issueInactiveDays, setIssueInactiveDays] = useState(14);
   const [healthThreshold, setHealthThreshold] = useState(60);
+  const [emailEnabled, setEmailEnabled] = useState(false);
   const [savingAlerts, setSavingAlerts] = useState(false);
   const [alertSaveError, setAlertSaveError] = useState<string | null>(null);
 
@@ -81,6 +82,7 @@ export default function SettingsPanel({ workspace, currentUserId, onClose }: Pro
     setPrWaitingDays(alertSettings.settings.pr_waiting_days);
     setIssueInactiveDays(alertSettings.settings.issue_inactive_days);
     setHealthThreshold(alertSettings.settings.health_score_threshold);
+    setEmailEnabled(alertSettings.settings.email_enabled);
   }, [alertSettings.settings]);
 
   async function handleConnectGithub() {
@@ -108,7 +110,7 @@ export default function SettingsPanel({ workspace, currentUserId, onClose }: Pro
         pr_waiting_days: prWaitingDays,
         issue_inactive_days: issueInactiveDays,
         health_score_threshold: healthThreshold,
-        email_enabled: alertSettings.settings.email_enabled,
+        email_enabled: emailEnabled,
       });
       onClose();
     } catch (e: any) {
@@ -318,6 +320,10 @@ export default function SettingsPanel({ workspace, currentUserId, onClose }: Pro
               value={healthThreshold}
               onChange={(e) => setHealthThreshold(Number(e.target.value))}
             />
+          </div>
+          <div className="settings-alert-row">
+            <input type="checkbox" checked={emailEnabled} onChange={(e) => setEmailEnabled(e.target.checked)} />
+            <span>Avisarme también por email</span>
           </div>
           {alertSaveError && (
             <p style={{ color: "var(--color-danger)", fontSize: 12, marginTop: 6 }}>{alertSaveError}</p>

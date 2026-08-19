@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import { query } from "../config/db.js";
+import { sendAlertEmail } from "./email.service.js";
 import { logger } from "../utils/logger.js";
 
 export async function getAlertSettings(userId, workspaceId) {
@@ -37,23 +38,34 @@ export async function upsertAlertSettings(userId, workspaceId, settings) {
   );
 }
 
-async function createNotification({ userId, workspaceId, type, title, body, url }) {
+async function createNotification({ userId, workspaceId, type, title, body, url, email, emailEnabled }) {
   await query(
     "INSERT INTO notifications (id, user_id, workspace_id, type, title, body, url) VALUES (?, ?, ?, ?, ?, ?, ?)",
     [randomUUID(), userId, workspaceId, type, title, body, url]
   );
   logger.info("Notificación creada", { userId, type, title });
+
+  if (emailEnabled && email) {
+    await sendAlertEmail({
+      to: email,
+      subject: `DevPulse — ${title}`,
+      html: `<p>${body}</p>`,
+    });
+  }
 }
 
 // Se llama después de cada sincronización para evaluar si hay que alertar
 export async function evaluateAlerts({ workspaceId, repoFullName, healthResult, failingWorkflows = [] }) {
   const members = await query(
-    "SELECT user_id FROM workspace_members WHERE workspace_id = ?",
+    `SELECT wm.user_id, u.email FROM workspace_members wm
+     JOIN users u ON u.id = wm.user_id
+     WHERE wm.workspace_id = ?`,
     [workspaceId]
   );
 
-  for (const { user_id: userId } of members) {
+  for (const { user_id: userId, email } of members) {
     const settings = await getAlertSettings(userId, workspaceId);
+    const emailEnabled = Boolean(settings.email_enabled);
 
     if (settings.ci_failure && failingWorkflows.length > 0) {
       await createNotification({
@@ -63,6 +75,8 @@ export async function evaluateAlerts({ workspaceId, repoFullName, healthResult, 
         title: `CI fallando en ${repoFullName}`,
         body: `${failingWorkflows.length} workflow(s) fallando.`,
         url: null,
+        email,
+        emailEnabled,
       });
     }
 
@@ -74,6 +88,8 @@ export async function evaluateAlerts({ workspaceId, repoFullName, healthResult, 
         title: `Salud baja en ${repoFullName}`,
         body: `Health score: ${healthResult.score}/100 (umbral: ${settings.health_score_threshold}).`,
         url: null,
+        email,
+        emailEnabled,
       });
     }
   }
