@@ -22,6 +22,8 @@ priorizado (con o sin IA) de lo que realmente importa resolver primero.
 - [Webhooks](#webhooks)
 - [Health Score](#health-score)
 - [Sistema de IA (Daily Brief)](#sistema-de-ia-daily-brief)
+- [Notificaciones en tiempo real](#notificaciones-en-tiempo-real)
+- [Alertas por email](#alertas-por-email)
 - [Documentación de la API](#documentación-de-la-api)
 - [Variables de entorno](#variables-de-entorno)
 - [Desarrollo local](#desarrollo-local)
@@ -44,14 +46,17 @@ solo necesita saber, de un vistazo, qué está roto o esperando su atención.
   nunca es una caja negra.
 - **Sistema de prioridades** que ordena PRs, issues y fallos de CI por
   urgencia real, con la razón específica de por qué importa cada uno.
-- **Daily Engineering Brief**: resumen en lenguaje natural generado por IA
-  (Groq u OpenAI), con degradación elegante a reglas automáticas si no hay
-  clave configurada.
+- **Daily Engineering Brief**: resumen en lenguaje natural generado por IA,
+  con **soporte multi-proveedor** (Groq, OpenAI, Anthropic/Claude a la vez)
+  y fallback en cadena — si el proveedor preferido falla, prueba el
+  siguiente configurado antes de degradar a reglas automáticas.
 - **Sincronización dual**: polling periódico + webhooks de GitHub, con
   botón manual "Sync now" y estado observable (idle/en progreso/fallido).
-- **Workspaces multiusuario con RBAC** (owner/admin/member/viewer).
+- **Workspaces multiusuario con RBAC** (owner/admin/member/viewer), con UI
+  completa para invitar, cambiar rol y remover miembros.
 - **Alertas configurables** por umbral (CI roto, PR esperando X días, issue
-  inactivo, Health Score bajo).
+  inactivo, Health Score bajo), entregadas por **notificación in-app en
+  tiempo real (WebSocket)** y opcionalmente por **email** (Resend).
 - **Búsqueda, filtros y paginación** sobre la lista de repositorios.
 - **Histórico de Health Score** con gráfica de tendencia.
 - **Auditoría**: cada acción sensible (agregar repo, cambiar roles) queda
@@ -73,8 +78,10 @@ devpulse-pro/
 │   │   │   ├── priority.service.js      qué necesita atención y por qué
 │   │   │   ├── github.service.js        cliente de GitHub REST API
 │   │   │   ├── sync.service.js          orquesta fetch + persistencia
-│   │   │   ├── ai.service.js            Daily Brief (Groq/OpenAI + fallback)
-│   │   │   ├── alert.service.js         umbrales y notificaciones
+│   │   │   ├── ai.service.js            Daily Brief (multi-proveedor + fallback)
+│   │   │   ├── alert.service.js         umbrales, notificaciones in-app y email
+│   │   │   ├── email.service.js         envío de alertas por email (Resend)
+│   │   │   ├── realtime.service.js      servidor WebSocket (notificaciones push)
 │   │   │   └── cache.service.js         caché en memoria (TTL)
 │   │   ├── middleware/             auth (JWT+RBAC), rate limit, validación,
 │   │   │                            logging con request-id, error handler
@@ -103,10 +110,11 @@ toca SQL directamente.
 ## Stack técnico
 
 **Backend**: Node.js, Express, MySQL (mysql2), JWT, bcrypt, Zod, Helmet,
-express-rate-limit, node-fetch.
+express-rate-limit, node-fetch, `ws` (WebSockets).
 
 **Frontend**: React 18, TypeScript, Vite, react-router-dom, CSS puro por
-componente (sin frameworks de utilidades).
+componente (sin frameworks de utilidades). Tests con Vitest + React
+Testing Library.
 
 ## Esquema de base de datos
 
@@ -188,9 +196,52 @@ que verifican casos saludables, críticos, y los límites 0-100.
 `ai.service.js` no es un chatbot genérico: recibe el Health Score y la
 lista de prioridades ya calculados, y genera un mensaje breve explicando
 qué es más urgente y **por qué** (ej. "porque está bloqueando el pipeline
-de integración"). Si no hay clave de IA configurada, o la llamada falla,
-cae a un resumen generado con las mismas reglas deterministas — el
-dashboard nunca se queda sin su pieza principal.
+de integración").
+
+**Multi-proveedor con fallback en cadena**: el usuario puede configurar la
+clave de Groq, OpenAI y/o Anthropic (Claude) a la vez desde Configuración
+— cada una se guarda por separado, no se pisan entre sí. Se intenta
+primero el proveedor marcado como preferido; si falla (clave inválida,
+proveedor caído) o no tiene clave, se prueba con el siguiente que sí la
+tenga, en orden. Solo si ninguno funciona (o no hay ninguna clave
+configurada) cae a un resumen generado con reglas deterministas — el
+dashboard nunca se queda sin su pieza principal. Agregar un proveedor
+nuevo es agregar una entrada al registro `AI_PROVIDERS` en
+`ai.service.js`, nada más.
+
+## Notificaciones en tiempo real
+
+`realtime.service.js` levanta un servidor WebSocket (`ws`, ruta `/ws`) en
+el mismo puerto HTTP que Express — la conexión se autentica con el JWT
+como query param (`?token=...`) *antes* de completar el handshake, y se
+rechaza con 401 si falta o es inválido. Cuando `alert.service.js` crea una
+notificación, la empuja al instante a cualquier pestaña abierta de ese
+usuario (`pushToUser`), en vez de que el cliente tenga que esperar el
+siguiente poll.
+
+El polling de `GET /api/notifications` cada 60s **se mantiene** como red
+de seguridad — si el socket se cayó y todavía no reconectó, o se perdió
+algún mensaje, el próximo poll lo recupera. El cliente reconecta solo con
+backoff exponencial (hasta 30s) si la conexión se cae de forma inesperada,
+pero no si el propio componente se desmonta (ej. logout).
+
+## Alertas por email
+
+Además de la notificación in-app, cada tipo de alerta (`ci_failure`,
+`health_drop`) puede mandarse también por email si el usuario activa
+"Avisarme también por email" en Configuración. `email.service.js` llama
+directo a la API REST de Resend (sin SDK, mismo patrón que
+`ai.service.js`/`github.service.js`) — sin `RESEND_API_KEY` configurada,
+se degrada a un no-op logueado, igual que el Daily Brief sin clave de IA.
+
+**Requiere configuración externa que debes completar tú:**
+Regístrate gratis en [resend.com](https://resend.com), genera una API key
+en `resend.com/api-keys`, y ponla en `RESEND_API_KEY`. Sin un dominio
+propio verificado en Resend, el remitente por defecto
+(`onboarding@resend.dev`) solo puede enviar a la dirección de prueba de
+Resend o a la cuenta con la que te registraste — no a destinatarios
+arbitrarios. Para que las alertas lleguen a inboxes reales, verifica un
+dominio en Resend y actualiza `ALERT_EMAIL_FROM`.
 
 ## Documentación de la API
 
@@ -216,9 +267,12 @@ excepto `/api/auth/*` y `/api/webhooks/*`.
 | GET | `/.../repositories/:repoId/health-history` | Histórico para gráfica |
 | POST | `/.../repositories/:repoId/sync` | "Sync now" manual |
 | GET | `/api/workspaces/:id/dashboard` | Vista agregada + Daily Brief |
+| GET/PATCH | `/api/workspaces/:id/alert-settings` | Ver / actualizar umbrales de alerta (por usuario) |
 | POST | `/api/webhooks/github` | Recibe eventos de GitHub (firma HMAC) |
 | GET | `/api/notifications` | Alertas del usuario |
+| PATCH | `/api/notifications/:id/read` | Marcar alerta como leída |
 | GET | `/health` | Health check (DB + GitHub rate limit) |
+| WS | `/ws?token=<jwt>` | Notificaciones push en tiempo real |
 
 ## Variables de entorno
 
@@ -229,6 +283,12 @@ y comentada. Las que requieren que **tú** las generes/configures:
 - `ENCRYPTION_KEY` — 32 bytes en hex: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
 - `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` / `GITHUB_CALLBACK_URL` — de tu GitHub OAuth App
 - `GITHUB_WEBHOOK_SECRET` — el que configures en Settings → Webhooks del repo
+- `RESEND_API_KEY` / `ALERT_EMAIL_FROM` — opcional, solo si quieres alertas
+  por email (ver [Alertas por email](#alertas-por-email))
+
+Las claves de IA (Groq/OpenAI/Anthropic) **no** se configuran en el
+servidor — cada usuario las pega desde Configuración en el frontend y se
+mandan por request, nunca se guardan en la base de datos.
 
 ## Desarrollo local
 
