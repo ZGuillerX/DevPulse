@@ -271,9 +271,17 @@ Cubre `health.service.js` (cálculo del Health Score) y
 son la lógica de negocio más importante del proyecto, y corren sin
 necesitar base de datos ni red.
 
-*(Testing de frontend con Vitest y E2E con Playwright quedan como
-siguiente iteración natural — la base con Vitest ya está en
-`client/package.json`.)*
+```bash
+cd client && npm test
+```
+
+Cubre con Vitest + React Testing Library los flujos donde antes había
+fallos silenciosos: que "Sync now" y "Agregar repositorio" muestren el
+error cuando la petición falla en vez de resetearse sin avisar nada, y
+que el hook `useWorkspaceMembers` propague errores en lugar de
+tragárselos.
+
+*(E2E con Playwright queda como siguiente iteración natural.)*
 
 ## Despliegue
 
