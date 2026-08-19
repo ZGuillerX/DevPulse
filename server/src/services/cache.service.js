@@ -25,6 +25,15 @@ export async function cacheDel(key) {
   store.delete(key);
 }
 
+// Los listados (repos, PRs, issues...) cachean con sufijos dinámicos
+// (paginación, búsqueda, filtros), así que una key exacta nunca los alcanza.
+// Esto borra todas las entradas cuya key empiece con `prefix`.
+export async function cacheDelPrefix(prefix) {
+  for (const key of store.keys()) {
+    if (key.startsWith(prefix)) store.delete(key);
+  }
+}
+
 export async function cacheWrap(key, ttlSeconds, fn) {
   const cached = await cacheGet(key);
   if (cached !== null) return cached;
@@ -32,4 +41,13 @@ export async function cacheWrap(key, ttlSeconds, fn) {
   const fresh = await fn();
   await cacheSet(key, fresh, ttlSeconds);
   return fresh;
+}
+
+// Único punto de invalidación tras cualquier mutación que afecte a un
+// workspace (agregar/borrar/sincronizar repo, webhook de GitHub) — evita que
+// cada caller tenga que recordar las keys exactas de cada caché relacionada.
+export async function invalidateWorkspaceCaches(workspaceId) {
+  await cacheDelPrefix(`repos:${workspaceId}`);
+  await cacheDel(`dashboard:${workspaceId}`);
+  logger.debug("Cachés de workspace invalidadas", { workspaceId });
 }
