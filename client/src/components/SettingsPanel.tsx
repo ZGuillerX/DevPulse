@@ -313,8 +313,9 @@ export default function SettingsPanel({ workspace, currentUserId, onClose }: Pro
             <span>PR esperando revisión más de</span>
             <input
               type="number"
+              min={0}
               value={prWaitingDays}
-              onChange={(e) => setPrWaitingDays(Number(e.target.value))}
+              onChange={(e) => setPrWaitingDays(Math.max(0, Number(e.target.value)))}
             />
             <span>días</span>
           </div>
@@ -322,8 +323,9 @@ export default function SettingsPanel({ workspace, currentUserId, onClose }: Pro
             <span>Issue inactivo más de</span>
             <input
               type="number"
+              min={0}
               value={issueInactiveDays}
-              onChange={(e) => setIssueInactiveDays(Number(e.target.value))}
+              onChange={(e) => setIssueInactiveDays(Math.max(0, Number(e.target.value)))}
             />
             <span>días</span>
           </div>
@@ -331,8 +333,10 @@ export default function SettingsPanel({ workspace, currentUserId, onClose }: Pro
             <span>Alertar si el Health Score baja de</span>
             <input
               type="number"
+              min={0}
+              max={100}
               value={healthThreshold}
-              onChange={(e) => setHealthThreshold(Number(e.target.value))}
+              onChange={(e) => setHealthThreshold(Math.min(100, Math.max(0, Number(e.target.value))))}
             />
           </div>
           <div className="settings-alert-row">

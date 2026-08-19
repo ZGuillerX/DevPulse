@@ -10,6 +10,18 @@ const DEFAULTS: AlertSettings = {
   email_enabled: false,
 };
 
+// mysql2 devuelve las columnas BOOLEAN como 0/1 (tinyint), no true/false.
+// Sin normalizar esto acá, ese 0/1 se guarda en el estado, se re-envía tal
+// cual en el próximo save(), y el backend lo rechaza (Zod espera boolean
+// estricto) — el "Guardar" falla en el segundo intento, no en el primero.
+function normalize(settings: AlertSettings): AlertSettings {
+  return {
+    ...settings,
+    ci_failure: Boolean(settings.ci_failure),
+    email_enabled: Boolean(settings.email_enabled),
+  };
+}
+
 export function useAlertSettings(workspaceId: string | null) {
   const [settings, setSettings] = useState<AlertSettings>(DEFAULTS);
   const [loading, setLoading] = useState(false);
@@ -21,7 +33,7 @@ export function useAlertSettings(workspaceId: string | null) {
     setError(null);
     try {
       const data = await apiRequest<{ settings: AlertSettings }>(`/workspaces/${workspaceId}/alert-settings`);
-      setSettings(data.settings);
+      setSettings(normalize(data.settings));
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -45,7 +57,7 @@ export function useAlertSettings(workspaceId: string | null) {
         emailEnabled: next.email_enabled,
       },
     });
-    setSettings(data.settings);
+    setSettings(normalize(data.settings));
   }
 
   return { settings, loading, error, save };
