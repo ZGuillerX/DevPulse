@@ -60,6 +60,29 @@ export async function updateMemberRole(req, res, next) {
     const { role } = req.body;
     const { workspaceId, userId } = req.params;
 
+    // Un admin (no owner) podía subirse a sí mismo o a cualquiera a "owner"
+    // vía este endpoint, o degradar al owner actual — ambas son escalada de
+    // privilegios. Solo un owner puede otorgar o modificar el rol de owner.
+    const targetCurrentRole = await WorkspaceModel.getMemberRole(workspaceId, userId);
+    const callerIsOwner = req.workspaceRole === "owner";
+
+    if (role === "owner" && !callerIsOwner) {
+      throw new AppError("Solo un owner puede otorgar el rol de owner.", 403, "FORBIDDEN");
+    }
+    if (targetCurrentRole === "owner" && !callerIsOwner) {
+      throw new AppError("Solo un owner puede cambiar el rol de otro owner.", 403, "FORBIDDEN");
+    }
+    if (targetCurrentRole === "owner" && role !== "owner") {
+      const ownerCount = await WorkspaceModel.countOwners(workspaceId);
+      if (ownerCount <= 1) {
+        throw new AppError(
+          "No puedes quitarle el rol de owner al único owner del workspace. Asigna otro owner primero.",
+          400,
+          "LAST_OWNER"
+        );
+      }
+    }
+
     await WorkspaceModel.updateMemberRole({ workspaceId, userId, role });
     await logAudit({
       userId: req.user.id,
@@ -77,6 +100,18 @@ export async function updateMemberRole(req, res, next) {
 export async function removeMember(req, res, next) {
   try {
     const { workspaceId, userId } = req.params;
+
+    const targetCurrentRole = await WorkspaceModel.getMemberRole(workspaceId, userId);
+    if (targetCurrentRole === "owner") {
+      if (req.workspaceRole !== "owner") {
+        throw new AppError("Solo un owner puede quitar a otro owner.", 403, "FORBIDDEN");
+      }
+      const ownerCount = await WorkspaceModel.countOwners(workspaceId);
+      if (ownerCount <= 1) {
+        throw new AppError("No puedes quitar al único owner del workspace.", 400, "LAST_OWNER");
+      }
+    }
+
     await WorkspaceModel.removeMember({ workspaceId, userId });
     await logAudit({ userId: req.user.id, workspaceId, action: "member.removed", req, metadata: { targetUserId: userId } });
     res.json({ message: "Miembro eliminado." });

@@ -11,6 +11,22 @@ export async function createWorkspace({ name, ownerId }) {
   return { id, name, ownerId };
 }
 
+export async function getMemberRole(workspaceId, userId) {
+  const rows = await query("SELECT role FROM workspace_members WHERE workspace_id = ? AND user_id = ?", [
+    workspaceId,
+    userId,
+  ]);
+  return rows[0]?.role ?? null;
+}
+
+export async function countOwners(workspaceId) {
+  const rows = await query(
+    "SELECT COUNT(*) as total FROM workspace_members WHERE workspace_id = ? AND role = 'owner'",
+    [workspaceId]
+  );
+  return rows[0].total;
+}
+
 export async function listUserWorkspaces(userId) {
   return query(
     `SELECT w.id, w.name, wm.role
