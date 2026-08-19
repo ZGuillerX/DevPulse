@@ -83,7 +83,7 @@ export async function handleGitHubWebhook(req, res, next) {
     }
 
     // Re-sincroniza el repo afectado: esto recalcula health score y prioridades
-    await syncRepository(repo.id, token, repo.full_name);
+    await syncRepository(repo.id, token, repo.full_name, repo.workspace_id);
     await invalidateWorkspaceCaches(repo.workspace_id);
 
     req.log.info("Repositorio re-sincronizado por webhook", { repositoryId: repo.id, event });

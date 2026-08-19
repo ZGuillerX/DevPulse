@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Role, Workspace } from "@/types";
 import { setAiKey, getStoredAiKey } from "@/lib/api";
 import { useGithubConnection } from "@/hooks/useGithubConnection";
 import { useWorkspaceMembers } from "@/hooks/useWorkspaceMembers";
+import { useAlertSettings } from "@/hooks/useAlertSettings";
 import "./SettingsPanel.css";
 
 const ROLE_LABELS: Record<Role, string> = {
@@ -66,9 +67,21 @@ export default function SettingsPanel({ workspace, currentUserId, onClose }: Pro
     (localStorage.getItem("devpulse:aiProvider") as "groq" | "openai") || "groq"
   );
   const [aiKey, setAiKeyLocal] = useState(getStoredAiKey());
+
+  const alertSettings = useAlertSettings(workspace?.id ?? null);
+  const [ciFailure, setCiFailure] = useState(true);
   const [prWaitingDays, setPrWaitingDays] = useState(3);
   const [issueInactiveDays, setIssueInactiveDays] = useState(14);
   const [healthThreshold, setHealthThreshold] = useState(60);
+  const [savingAlerts, setSavingAlerts] = useState(false);
+  const [alertSaveError, setAlertSaveError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setCiFailure(alertSettings.settings.ci_failure);
+    setPrWaitingDays(alertSettings.settings.pr_waiting_days);
+    setIssueInactiveDays(alertSettings.settings.issue_inactive_days);
+    setHealthThreshold(alertSettings.settings.health_score_threshold);
+  }, [alertSettings.settings]);
 
   async function handleConnectGithub() {
     if (!patInput.trim()) return;
@@ -83,12 +96,26 @@ export default function SettingsPanel({ workspace, currentUserId, onClose }: Pro
     }
   }
 
-  function handleSave() {
+  async function handleSave() {
     localStorage.setItem("devpulse:aiProvider", provider);
     setAiKey(aiKey);
-    // Los umbrales de alerta se guardarían vía POST /api/workspaces/:id/alert-settings
-    // (endpoint disponible en el backend, se conecta cuando el usuario confirma su workspace activo)
-    onClose();
+
+    setSavingAlerts(true);
+    setAlertSaveError(null);
+    try {
+      await alertSettings.save({
+        ci_failure: ciFailure,
+        pr_waiting_days: prWaitingDays,
+        issue_inactive_days: issueInactiveDays,
+        health_score_threshold: healthThreshold,
+        email_enabled: alertSettings.settings.email_enabled,
+      });
+      onClose();
+    } catch (e: any) {
+      setAlertSaveError(e?.message || "No se pudieron guardar los umbrales de alerta.");
+    } finally {
+      setSavingAlerts(false);
+    }
   }
 
   return (
@@ -263,6 +290,10 @@ export default function SettingsPanel({ workspace, currentUserId, onClose }: Pro
         <div className="settings-section">
           <label className="settings-label">Umbrales de alerta</label>
           <div className="settings-alert-row">
+            <input type="checkbox" checked={ciFailure} onChange={(e) => setCiFailure(e.target.checked)} />
+            <span>Avisarme cuando falle el CI</span>
+          </div>
+          <div className="settings-alert-row">
             <span>PR esperando revisión más de</span>
             <input
               type="number"
@@ -288,10 +319,13 @@ export default function SettingsPanel({ workspace, currentUserId, onClose }: Pro
               onChange={(e) => setHealthThreshold(Number(e.target.value))}
             />
           </div>
+          {alertSaveError && (
+            <p style={{ color: "var(--color-danger)", fontSize: 12, marginTop: 6 }}>{alertSaveError}</p>
+          )}
         </div>
 
-        <button className="settings-save" onClick={handleSave}>
-          Guardar
+        <button className="settings-save" onClick={handleSave} disabled={savingAlerts}>
+          {savingAlerts ? "Guardando..." : "Guardar"}
         </button>
       </div>
     </div>

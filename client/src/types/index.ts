@@ -124,3 +124,11 @@ export interface Member {
   avatar_url: string | null;
   role: Role;
 }
+
+export interface AlertSettings {
+  ci_failure: boolean;
+  pr_waiting_days: number;
+  issue_inactive_days: number;
+  health_score_threshold: number;
+  email_enabled: boolean;
+}

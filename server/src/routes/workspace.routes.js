@@ -1,6 +1,11 @@
 import { Router } from "express";
 import * as workspaceController from "../controllers/workspace.controller.js";
-import { createWorkspaceSchema, inviteMemberSchema, updateRoleSchema } from "../controllers/workspace.schemas.js";
+import {
+  createWorkspaceSchema,
+  inviteMemberSchema,
+  updateRoleSchema,
+  updateAlertSettingsSchema,
+} from "../controllers/workspace.schemas.js";
 import { validateBody } from "../middleware/validate.js";
 import { requireAuth, requireWorkspaceRole } from "../middleware/auth.js";
 
@@ -25,5 +30,13 @@ router.patch(
   workspaceController.updateMemberRole
 );
 router.delete("/:workspaceId/members/:userId", requireWorkspaceRole("admin"), workspaceController.removeMember);
+
+router.get("/:workspaceId/alert-settings", requireWorkspaceRole("viewer"), workspaceController.getAlertSettings);
+router.patch(
+  "/:workspaceId/alert-settings",
+  requireWorkspaceRole("viewer"),
+  validateBody(updateAlertSettingsSchema),
+  workspaceController.updateAlertSettings
+);
 
 export default router;

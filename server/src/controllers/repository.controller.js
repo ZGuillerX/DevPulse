@@ -42,7 +42,7 @@ export async function addRepository(req, res, next) {
     const repoData = await fetchRepo(token, fullName);
     const repositoryId = await RepoModel.addRepository({ workspaceId, repoData });
 
-    await syncRepository(repositoryId, token, fullName);
+    await syncRepository(repositoryId, token, fullName, workspaceId);
     await invalidateWorkspaceCaches(workspaceId);
     await logAudit({ userId: req.user.id, workspaceId, action: "repo.added", req, metadata: { fullName } });
 
@@ -118,7 +118,7 @@ export async function triggerSync(req, res, next) {
     if (!repo) throw new AppError("Repositorio no encontrado.", 404, "REPO_NOT_FOUND");
 
     const token = await getDecryptedGithubToken(req.user.id);
-    const result = await syncRepository(repo.id, token, repo.full_name);
+    const result = await syncRepository(repo.id, token, repo.full_name, repo.workspace_id);
 
     await invalidateWorkspaceCaches(repo.workspace_id);
     req.log.info("Sincronización manual disparada", { repositoryId: repo.id });

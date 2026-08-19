@@ -1,6 +1,7 @@
 import { AppError } from "../middleware/errorHandler.js";
 import * as WorkspaceModel from "../models/workspace.model.js";
 import * as UserModel from "../models/user.model.js";
+import * as AlertService from "../services/alert.service.js";
 import { logAudit } from "./auth.controller.js";
 
 export async function createWorkspace(req, res, next) {
@@ -79,6 +80,25 @@ export async function removeMember(req, res, next) {
     await WorkspaceModel.removeMember({ workspaceId, userId });
     await logAudit({ userId: req.user.id, workspaceId, action: "member.removed", req, metadata: { targetUserId: userId } });
     res.json({ message: "Miembro eliminado." });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getAlertSettings(req, res, next) {
+  try {
+    const settings = await AlertService.getAlertSettings(req.user.id, req.params.workspaceId);
+    res.json({ settings });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function updateAlertSettings(req, res, next) {
+  try {
+    await AlertService.upsertAlertSettings(req.user.id, req.params.workspaceId, req.body);
+    const settings = await AlertService.getAlertSettings(req.user.id, req.params.workspaceId);
+    res.json({ settings });
   } catch (err) {
     next(err);
   }
