@@ -77,7 +77,9 @@ function AuthenticatedApp() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
-      {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
+      {showSettings && (
+        <SettingsPanel workspace={active} currentUserId={auth.user?.id ?? null} onClose={() => setShowSettings(false)} />
+      )}
       {showNotifications && (
         <NotificationsPanel
           notifications={notifications}

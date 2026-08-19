@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  server:
+    name: Server — test & build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: server/package.json
+
+      - name: Instalar dependencias
+        working-directory: server
+        run: npm install
+
+      - name: Ejecutar tests unitarios
+        working-directory: server
+        run: npm test
+
+  client:
+    name: Client — typecheck & build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: client/package.json
+
+      - name: Instalar dependencias
+        working-directory: client
+        run: npm install
+
+      - name: Type check
+        working-directory: client
+        run: npx tsc -b
+
+      - name: Build
+        working-directory: client
+        run: npm run build
+
+  docker-build:
+    name: Verificar build de imágenes Docker
+    runs-on: ubuntu-latest
+    needs: [server, client]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build server image
+        run: docker build -t devpulse-server ./server
+      - name: Build client image
+        run: docker build -t devpulse-client ./client

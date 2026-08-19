@@ -14,6 +14,11 @@ export default defineConfig({
     proxy: {
       "/api": "http://localhost:4000",
       "/health": "http://localhost:4000",
+      "/ws": { target: "ws://localhost:4000", ws: true },
     },
+  },
+  test: {
+    environment: "jsdom",
+    setupFiles: ["./src/test/setup.ts"],
   },
 });

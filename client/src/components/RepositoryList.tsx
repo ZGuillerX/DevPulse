@@ -39,15 +39,19 @@ export default function RepositoryList({
   const [showAddForm, setShowAddForm] = useState(false);
   const [newRepo, setNewRepo] = useState("");
   const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
   const [syncingId, setSyncingId] = useState<string | null>(null);
 
   async function handleAdd() {
     if (!newRepo.trim()) return;
     setAdding(true);
+    setAddError(null);
     try {
       await onAddRepository(newRepo.trim());
       setNewRepo("");
       setShowAddForm(false);
+    } catch (e: any) {
+      setAddError(e?.message || "No se pudo agregar el repositorio. Verifica el nombre y que exista en tu cuenta.");
     } finally {
       setAdding(false);
     }
@@ -86,17 +90,23 @@ export default function RepositoryList({
       </div>
 
       {showAddForm && (
-        <div className="repo-add-form">
-          <input
-            className="repo-add-input"
-            placeholder="owner/repo, ej: ZGuillerX/skillpilot-mvp"
-            value={newRepo}
-            onChange={(e) => setNewRepo(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-          />
-          <button className="repo-add-btn" onClick={handleAdd} disabled={adding}>
-            {adding ? "Agregando..." : "Agregar"}
-          </button>
+        <div className="repo-add-form-wrapper">
+          <div className="repo-add-form">
+            <input
+              className="repo-add-input"
+              placeholder="owner/repo, URL o git@github.com:owner/repo.git"
+              value={newRepo}
+              onChange={(e) => {
+                setNewRepo(e.target.value);
+                if (addError) setAddError(null);
+              }}
+              onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+            />
+            <button className="repo-add-btn" onClick={handleAdd} disabled={adding}>
+              {adding ? "Agregando..." : "Agregar"}
+            </button>
+          </div>
+          {addError && <p className="repo-add-error">{addError}</p>}
         </div>
       )}
 

@@ -3,6 +3,7 @@ import { query, pool } from "../config/db.js";
 import * as github from "./github.service.js";
 import { enrichPullRequest, enrichIssue } from "./prStatus.service.js";
 import { calculateHealthScore } from "./health.service.js";
+import { evaluateAlerts } from "./alert.service.js";
 import { logger } from "../utils/logger.js";
 
 async function upsertSyncStatus(repositoryId, status, errorMessage = null) {
@@ -127,7 +128,7 @@ async function saveHealthSnapshot(repositoryId, healthResult) {
  * calcula el health score, y guarda un snapshot histórico.
  * Idempotente: se puede llamar tantas veces como se quiera ("Sync now").
  */
-export async function syncRepository(repositoryId, token, repoFullName) {
+export async function syncRepository(repositoryId, token, repoFullName, workspaceId) {
   const log = logger.child({ repositoryId, repo: repoFullName });
   log.info("Iniciando sincronización");
   await upsertSyncStatus(repositoryId, "in_progress");
@@ -158,6 +159,17 @@ export async function syncRepository(repositoryId, token, repoFullName) {
       criticalVulnerabilities: criticalVulns,
     });
     await saveHealthSnapshot(repositoryId, healthResult);
+
+    if (workspaceId) {
+      try {
+        const failingWorkflows = workflowRuns.filter((run) => run.conclusion === "failure");
+        await evaluateAlerts({ workspaceId, repoFullName, healthResult, failingWorkflows });
+      } catch (err) {
+        // Un fallo evaluando alertas no debe marcar como fallida una
+        // sincronización que sí trajo datos frescos correctamente.
+        log.warn("No se pudieron evaluar alertas tras la sincronización", { error: err.message });
+      }
+    }
 
     await upsertSyncStatus(repositoryId, "success");
     log.info("Sincronización completada", { healthScore: healthResult.score, prs: pullRequests.length, issues: issues.length });

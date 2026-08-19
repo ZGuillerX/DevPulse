@@ -13,13 +13,20 @@ export async function getDashboard(req, res, next) {
     const cacheKey = `dashboard:${workspaceId}`;
     const data = await cacheWrap(cacheKey, 60, () => buildDashboardData(workspaceId));
 
+    let aiKeys = {};
+    try {
+      aiKeys = req.headers["x-ai-keys"] ? JSON.parse(req.headers["x-ai-keys"]) : {};
+    } catch {
+      aiKeys = {};
+    }
+
     const user = await UserModel.findUserById(req.user.id);
     const brief = await generateDailyBrief({
       userName: user?.name,
       priorityItems: data.priorityItems,
       healthScores: data.healthScores,
-      provider: req.query.aiProvider || "groq",
-      apiKey: req.headers["x-ai-key"] || "",
+      preferredProvider: req.query.aiProvider || "groq",
+      aiKeys,
     });
 
     res.json({ ...data, brief });

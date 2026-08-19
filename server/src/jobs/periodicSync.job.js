@@ -23,7 +23,7 @@ async function syncAllRepositories() {
   for (const repo of repos) {
     try {
       const token = decrypt(repo.github_access_token_encrypted);
-      await syncRepository(repo.id, token, repo.full_name);
+      await syncRepository(repo.id, token, repo.full_name, repo.workspace_id);
       succeeded++;
     } catch (err) {
       failed++;

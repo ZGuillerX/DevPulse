@@ -4,7 +4,7 @@ import { AppError } from "../middleware/errorHandler.js";
 import { query } from "../config/db.js";
 import { syncRepository } from "../services/sync.service.js";
 import { decrypt } from "../utils/crypto.js";
-import { cacheDel } from "../services/cache.service.js";
+import { invalidateWorkspaceCaches } from "../services/cache.service.js";
 
 // Verifica que el payload realmente venga de GitHub, no de un tercero
 // suplantando el endpoint. GitHub firma cada payload con HMAC-SHA256
@@ -37,7 +37,14 @@ async function getTokenForWorkspace(workspaceId) {
     [workspaceId]
   );
   const encrypted = rows[0]?.github_access_token_encrypted;
-  return encrypted ? decrypt(encrypted) : null;
+  if (!encrypted) return null;
+  try {
+    return decrypt(encrypted);
+  } catch {
+    // Token no desencriptable (p. ej. ENCRYPTION_KEY cambió) — se trata igual
+    // que "sin token" para no tumbar el webhook con un 500.
+    return null;
+  }
 }
 
 // Eventos que nos interesan: push, pull_request, issues, workflow_run, release
@@ -76,8 +83,8 @@ export async function handleGitHubWebhook(req, res, next) {
     }
 
     // Re-sincroniza el repo afectado: esto recalcula health score y prioridades
-    await syncRepository(repo.id, token, repo.full_name);
-    await cacheDel(`dashboard:${repo.workspace_id}`);
+    await syncRepository(repo.id, token, repo.full_name, repo.workspace_id);
+    await invalidateWorkspaceCaches(repo.workspace_id);
 
     req.log.info("Repositorio re-sincronizado por webhook", { repositoryId: repo.id, event });
     res.status(200).json({ message: "Sincronizado correctamente." });

@@ -16,6 +16,7 @@ export default function RepositoryPage({ workspace }: Props) {
   const { repositoryId } = useParams();
   const navigate = useNavigate();
   const [syncing, setSyncing] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   const { detail, pullRequests, issues, history, loading, error, triggerSync } = useRepositoryDetail(
     workspace?.id ?? null,
@@ -24,8 +25,11 @@ export default function RepositoryPage({ workspace }: Props) {
 
   async function handleSync() {
     setSyncing(true);
+    setSyncError(null);
     try {
       await triggerSync();
+    } catch (e: any) {
+      setSyncError(e?.message || "No se pudo sincronizar el repositorio.");
     } finally {
       setSyncing(false);
     }
@@ -65,6 +69,8 @@ export default function RepositoryPage({ workspace }: Props) {
           {syncing ? "Sincronizando..." : "↻ Sync now"}
         </button>
       </div>
+
+      {syncError && <p style={{ color: "var(--color-danger)" }}>{syncError}</p>}
 
       <div className="repo-page-top-grid">
         <HealthScoreCard health={detail?.health ?? null} />

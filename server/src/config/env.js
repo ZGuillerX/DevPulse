@@ -41,6 +41,11 @@ export const config = {
     openaiApiKey: process.env.OPENAI_API_KEY || "",
   },
 
+  email: {
+    resendApiKey: process.env.RESEND_API_KEY || "",
+    from: process.env.ALERT_EMAIL_FROM || "DevPulse <onboarding@resend.dev>",
+  },
+
   frontendUrl: process.env.FRONTEND_URL || "http://localhost:5173",
 
   rateLimit: {

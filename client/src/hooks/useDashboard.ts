@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { DashboardData } from "@/types";
-import { apiRequest } from "@/lib/api";
+import { apiRequest, getPreferredAiProvider } from "@/lib/api";
 
 export function useDashboard(workspaceId: string | null) {
   const [data, setData] = useState<DashboardData | null>(null);
@@ -12,7 +12,10 @@ export function useDashboard(workspaceId: string | null) {
     setLoading(true);
     setError(null);
     try {
-      const result = await apiRequest<DashboardData>(`/workspaces/${workspaceId}/dashboard`);
+      const provider = getPreferredAiProvider();
+      const result = await apiRequest<DashboardData>(
+        `/workspaces/${workspaceId}/dashboard?aiProvider=${encodeURIComponent(provider)}`
+      );
       setData(result);
     } catch (e: any) {
       setError(e.message);

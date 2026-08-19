@@ -3,6 +3,7 @@ import { createApp } from "./app.js";
 import { config, validateConfig } from "./config/env.js";
 import { verifyDbConnection } from "./config/db.js";
 import { startPeriodicSync } from "./jobs/periodicSync.job.js";
+import { setupWebSocketServer } from "./services/realtime.service.js";
 import { logger } from "./utils/logger.js";
 
 async function main() {
@@ -15,9 +16,11 @@ async function main() {
 
   const app = createApp();
 
-  app.listen(config.port, () => {
+  const httpServer = app.listen(config.port, () => {
     logger.info("DevPulse server iniciado", { port: config.port, env: config.env });
   });
+
+  setupWebSocketServer(httpServer);
 
   if (config.env !== "test" && dbOk) {
     startPeriodicSync();
